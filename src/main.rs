@@ -7,8 +7,10 @@ use std::process::ExitCode;
 mod app;
 mod cli;
 mod config;
+mod entity;
 mod errors;
 mod output;
+mod weather_api;
 
 #[tokio::main]
 async fn main() -> ExitCode {
@@ -27,6 +29,7 @@ async fn run() -> Result<(), AppError> {
 
     match cli.command {
         Command::Fav => app::run(config).await?,
+        Command::List => app::fetch_belgian_city_forecasts(config).await?,
     }
 
     Ok(())

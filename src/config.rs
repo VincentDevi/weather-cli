@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::errors::AppError;
 
+#[derive(Debug, Clone)]
 pub struct Config {
     open_weather_key: Arc<str>,
 }
@@ -13,5 +14,8 @@ impl Config {
         Ok(Self {
             open_weather_key: Arc::from(api_key.as_str()),
         })
+    }
+    pub fn open_weather_key(&self) -> Arc<str> {
+        self.open_weather_key.clone()
     }
 }
