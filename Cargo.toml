@@ -1,0 +1,28 @@
+[package]
+name = "weather-cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+# Error handling
+thiserror = "2.0.18"
+
+# CLI - Terminal
+clap = { version = "4.6", features = ["derive", "env"] }
+crossterm = "0.29.0"
+
+# Termainal UI
+comfy-table = "7.2.2"
+
+# Async - Request
+reqwest = "0.13.4"
+tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread"] }
+
+
+# Serialization - Deserialization
+serde = "1.0.228"
+
+
+# Secret
+dotenvy = "0.15.7"
