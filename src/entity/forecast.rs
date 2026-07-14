@@ -1,31 +1,21 @@
 use super::City;
-use chrono::{DateTime, Utc};
 
 #[derive(Debug)]
 pub struct Forecast {
-    timestamp: DateTime<Utc>,
     temperature_celsius: f64,
-    feels_like_celsius: f64,
     humidity_percent: i64,
-    wind_speed_mps: f64,
     precipitation_probability: f64,
 }
 
 impl Forecast {
     pub fn new(
-        timestamp: DateTime<Utc>,
         temperature_celsius: f64,
-        feels_like_celsius: f64,
         humidity_percent: i64,
-        wind_speed_mps: f64,
         precipitation_probability: f64,
     ) -> Self {
         Self {
-            timestamp,
             temperature_celsius,
-            feels_like_celsius,
             humidity_percent,
-            wind_speed_mps,
             precipitation_probability,
         }
     }
