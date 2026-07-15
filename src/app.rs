@@ -1,51 +1,69 @@
+use crate::cli::ForecastDay;
 use crate::entity::City;
-use crate::entity::Coordinate;
+use crate::entity::CityWeather;
 use crate::output::{WeatherTableRow, render_weather_table};
 use crate::weather_api::WeatherClient;
+use chrono::{DateTime, Utc};
 use std::sync::Arc;
 use tokio::task::JoinSet;
 
 use super::config::*;
 use super::errors::*;
 
-const BELGIAN_CITY_DEFINITIONS: [(&str, f64, f64); 10] = [
-    ("Brussels", 50.850346, 4.351721),
-    ("Antwerp", 51.219448, 4.402464),
-    ("Ghent", 51.054342, 3.717424),
-    ("Charleroi", 50.410809, 4.444643),
-    ("Liège", 50.632557, 5.579666),
-    ("Bruges", 51.209348, 3.224700),
-    ("Namur", 50.467388, 4.871985),
-    ("Leuven", 50.879844, 4.700518),
-    ("Mons", 50.454241, 3.956659),
-    ("Hasselt", 50.930690, 5.332480),
-];
-
-pub async fn run(config: Config) -> Result<(), AppError> {
+pub async fn fav_city(
+    config: Config,
+    city: impl Into<String>,
+    day: Option<ForecastDay>,
+) -> Result<(), AppError> {
+    let now = Utc::now();
     let weather_api = WeatherClient::new(&config.open_weather_key());
-    let prout = weather_api
-        .get_forecast(City::new("Charleroi", Coordinate::new(50.410809, 4.444643)))
+    let request = city.into().to_lowercase();
+
+    let path = "./data/cities.json";
+    let cities: Vec<City> = serde_json::from_str(
+        &std::fs::read_to_string(path).map_err(|err| AppError::Dev(err.to_string()))?,
+    )
+    .map_err(|err| AppError::Dev(err.to_string()))?;
+
+    let city = cities
+        .into_iter()
+        .find(|city| city.name().to_lowercase() == request.as_str())
+        .ok_or(AppError::Dev("nothing found in our json".to_string()))?;
+
+    let result = weather_api
+        .get_forecast(city)
         .await
         .map_err(|_| AppError::OpenWeather)?;
-    println!("{:?}", prout);
+    let row = weather_table_row(&result, day, now);
+
+    println!("{}", render_weather_table(&[row]));
     Ok(())
 }
 
-pub async fn fetch_belgian_city_forecasts(config: Config) -> Result<(), AppError> {
+pub async fn fetch_belgian_city_forecasts(
+    config: Config,
+    day: Option<ForecastDay>,
+) -> Result<(), AppError> {
+    let now = Utc::now();
     let weather_api = Arc::new(WeatherClient::new(&config.open_weather_key()));
     let mut requests = JoinSet::new();
 
-    for (index, (name, latitude, longitude)) in BELGIAN_CITY_DEFINITIONS.into_iter().enumerate() {
+    let path = "./data/cities.json";
+    let cities: Vec<City> = serde_json::from_str(
+        &std::fs::read_to_string(path).map_err(|err| AppError::Dev(err.to_string()))?,
+    )
+    .map_err(|err| AppError::Dev(err.to_string()))?;
+    let city_count = cities.len();
+
+    for (index, city) in cities.into_iter().enumerate() {
         let weather_api = Arc::clone(&weather_api);
         requests.spawn(async move {
-            let forecast = weather_api
-                .get_forecast(City::new(name, Coordinate::new(latitude, longitude)))
-                .await?;
+            let forecast = weather_api.get_forecast(city).await?;
             Ok::<_, AppError>((index, forecast))
         });
     }
 
-    let mut forecasts = Vec::with_capacity(BELGIAN_CITY_DEFINITIONS.len());
+    let mut forecasts = Vec::with_capacity(city_count);
     while let Some(result) = requests.join_next().await {
         let forecast = result.map_err(|_| AppError::OpenWeather)??;
         forecasts.push(forecast);
@@ -54,17 +72,48 @@ pub async fn fetch_belgian_city_forecasts(config: Config) -> Result<(), AppError
     forecasts.sort_by_key(|(index, _)| *index);
     let rows = forecasts
         .iter()
-        .map(|(_, weather)| {
-            let forecast = weather.next_forecast();
-            WeatherTableRow::new(
-                weather.city().name(),
-                forecast.map(|forecast| forecast.temperature_celsius()),
-                forecast.map(|forecast| forecast.humidity_percent()),
-                forecast.map(|forecast| forecast.precipitation_probability()),
-            )
-        })
+        .map(|(_, weather)| weather_table_row(weather, day, now))
         .collect::<Vec<_>>();
 
     println!("{}", render_weather_table(&rows));
     Ok(())
+}
+
+pub async fn city(
+    config: Config,
+    city: impl Into<String>,
+    day: Option<ForecastDay>,
+) -> Result<(), AppError> {
+    let now = Utc::now();
+    let weather_api = Arc::new(WeatherClient::new(&config.open_weather_key()));
+    let result_city = weather_api.get_geocoding(city).await?;
+
+    let result_weather = weather_api
+        .get_forecast(result_city)
+        .await
+        .map_err(|_| AppError::OpenWeather)?;
+    let row = weather_table_row(&result_weather, day, now);
+
+    println!("{}", render_weather_table(&[row]));
+
+    Ok(())
+}
+
+fn weather_table_row(
+    weather: &CityWeather,
+    day: Option<ForecastDay>,
+    now: DateTime<Utc>,
+) -> WeatherTableRow {
+    let forecast = match day {
+        Some(day) => weather.forecast_for_day(day.days_from_now(), now),
+        None => weather.next_forecast(),
+    };
+
+    WeatherTableRow::new(
+        weather.city().name(),
+        forecast.and_then(|forecast| weather.local_date(forecast)),
+        forecast.map(|forecast| forecast.temperature_celsius()),
+        forecast.map(|forecast| forecast.humidity_percent()),
+        forecast.map(|forecast| forecast.precipitation_probability()),
+    )
 }

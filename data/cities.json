@@ -1,0 +1,72 @@
+[
+  {
+    "name": "Brussels",
+    "coordinates": {
+      "lat": 50.850346,
+      "long": 4.351721
+    }
+  },
+  {
+    "name": "Antwerp",
+    "coordinates": {
+      "lat": 51.219448,
+      "long": 4.402464
+    }
+  },
+  {
+    "name": "Ghent",
+    "coordinates": {
+      "lat": 51.054342,
+      "long": 3.717424
+    }
+  },
+  {
+    "name": "Charleroi",
+    "coordinates": {
+      "lat": 50.410809,
+      "long": 4.444643
+    }
+  },
+  {
+    "name": "Liège",
+    "coordinates": {
+      "lat": 50.632557,
+      "long": 5.579666
+    }
+  },
+  {
+    "name": "Bruges",
+    "coordinates": {
+      "lat": 51.209348,
+      "long": 3.224700
+    }
+  },
+  {
+    "name": "Namur",
+    "coordinates": {
+      "lat": 50.467388,
+      "long": 4.871985
+    }
+  },
+  {
+    "name": "Leuven",
+    "coordinates": {
+      "lat": 50.879844,
+      "long": 4.700518
+    }
+  },
+  {
+    "name": "Mons",
+    "coordinates": {
+      "lat": 50.454241,
+      "long": 3.956659
+    }
+  },
+  {
+    "name": "Hasselt",
+    "coordinates": {
+      "lat": 50.930690,
+      "long": 5.332480
+    }
+  }
+]

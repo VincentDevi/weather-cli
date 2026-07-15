@@ -1,8 +1,10 @@
+use chrono::NaiveDate;
 use comfy_table::{ContentArrangement, Table, presets::UTF8_FULL};
 
 #[derive(Debug, PartialEq)]
 pub struct WeatherTableRow {
     city: String,
+    date: Option<NaiveDate>,
     temperature_celsius: Option<f64>,
     humidity_percent: Option<i64>,
     precipitation_probability: Option<f64>,
@@ -11,12 +13,14 @@ pub struct WeatherTableRow {
 impl WeatherTableRow {
     pub fn new(
         city: impl Into<String>,
+        date: Option<NaiveDate>,
         temperature_celsius: Option<f64>,
         humidity_percent: Option<i64>,
         precipitation_probability: Option<f64>,
     ) -> Self {
         Self {
             city: city.into(),
+            date,
             temperature_celsius,
             humidity_percent,
             precipitation_probability,
@@ -29,11 +33,12 @@ pub fn render_weather_table(rows: &[WeatherTableRow]) -> String {
     table
         .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::Dynamic)
-        .set_header(["City", "Temperature", "Humidity", "Precipitation"]);
+        .set_header(["City", "Date", "Temperature", "Humidity", "Precipitation"]);
 
     for row in rows {
         table.add_row([
             row.city.clone(),
+            format_date(row.date),
             format_temperature(row.temperature_celsius),
             format_percentage(row.humidity_percent.map(|value| value as f64)),
             format_percentage(
@@ -44,6 +49,12 @@ pub fn render_weather_table(rows: &[WeatherTableRow]) -> String {
     }
 
     table.to_string()
+}
+
+fn format_date(value: Option<NaiveDate>) -> String {
+    value
+        .map(|date| date.format("%Y-%m-%d").to_string())
+        .unwrap_or_else(|| "N/A".to_owned())
 }
 
 fn format_temperature(value: Option<f64>) -> String {

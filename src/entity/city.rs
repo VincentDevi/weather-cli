@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use crate::entity::Coordinate;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct City {
     name: String,
     coordinates: Coordinate,

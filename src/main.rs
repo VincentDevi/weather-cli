@@ -24,12 +24,13 @@ async fn main() -> ExitCode {
 }
 
 async fn run() -> Result<(), AppError> {
-    let cli = Cli::parse();
+    let Cli { day, command } = Cli::parse();
     let config = Config::load()?;
 
-    match cli.command {
-        Command::Fav => app::run(config).await?,
-        Command::List => app::fetch_belgian_city_forecasts(config).await?,
+    match command {
+        Command::FavCity { city } => app::fav_city(config, city, day).await?,
+        Command::FavCities => app::fetch_belgian_city_forecasts(config, day).await?,
+        Command::UnknowBelgianCity { city } => app::city(config, city, day).await?,
     }
 
     Ok(())

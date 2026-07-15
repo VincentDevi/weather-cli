@@ -8,4 +8,6 @@ pub enum AppError {
     Argument,
     #[error("Config error")]
     Config,
+    #[error("error : `{0}`")]
+    Dev(String),
 }
