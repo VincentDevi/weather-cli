@@ -1,6 +1,5 @@
 use crate::{
     entity::{City, CityWeather, Forecast},
-    errors::AppError,
     weather_api::dto::CityDto,
 };
 use chrono::FixedOffset;
@@ -8,7 +7,9 @@ use reqwest::Client;
 use std::sync::Arc;
 
 mod dto;
+mod error;
 use dto::ForecastResponseDto;
+pub use error::OpenWeatherError;
 
 pub struct WeatherClient {
     client: Client,
@@ -23,7 +24,7 @@ impl WeatherClient {
         }
     }
 
-    pub async fn get_forecast(&self, city: &City) -> Result<CityWeather, AppError> {
+    pub async fn get_forecast(&self, city: &City) -> Result<CityWeather, OpenWeatherError> {
         let forecast_url = "https://api.openweathermap.org/data/2.5/forecast";
         let response = self
             .client
@@ -37,15 +38,15 @@ impl WeatherClient {
             ])
             .send()
             .await
-            .map_err(|_| AppError::OpenWeather)?;
+            .map_err(OpenWeatherError::Request)?;
 
         let dto = response
             .json::<ForecastResponseDto>()
             .await
-            .map_err(|_| AppError::OpenWeather)?;
+            .map_err(OpenWeatherError::ResponseDeserialization)?;
 
         let timezone_offset_seconds = dto.city.timezone;
-        FixedOffset::east_opt(timezone_offset_seconds).ok_or(AppError::OpenWeather)?;
+        validate_timezone_offset(timezone_offset_seconds)?;
 
         let forecast = dto
             .list
@@ -63,28 +64,46 @@ impl WeatherClient {
         ))
     }
 
-    pub async fn get_geocoding(&self, location: impl Into<String>) -> Result<City, AppError> {
+    pub async fn get_geocoding(
+        &self,
+        location: impl Into<String>,
+    ) -> Result<City, OpenWeatherError> {
         let url = "http://api.openweathermap.org/geo/1.0/direct";
+        let location = location.into();
 
         let response = self
             .client
             .get(url)
             .query(&[
-                ("q", format!("{},BE", location.into())),
+                ("q", format!("{location},BE")),
                 ("limit", '1'.to_string()),
                 ("appid", self.api_key.to_string()),
             ])
             .send()
             .await
-            .map_err(|err| AppError::Dev(err.to_string()))?;
+            .map_err(OpenWeatherError::Request)?;
 
         let dto = response
             .json::<Vec<CityDto>>()
             .await
-            .map_err(|_| AppError::OpenWeather)?;
-        dto.into_iter()
-            .next()
-            .map(City::from)
-            .ok_or(AppError::OpenWeather)
+            .map_err(OpenWeatherError::ResponseDeserialization)?;
+
+        geocoded_city(location, dto)
     }
+}
+
+fn validate_timezone_offset(timezone_offset_seconds: i32) -> Result<(), OpenWeatherError> {
+    FixedOffset::east_opt(timezone_offset_seconds)
+        .map(|_| ())
+        .ok_or(OpenWeatherError::InvalidTimezoneOffset(
+            timezone_offset_seconds,
+        ))
+}
+
+fn geocoded_city(location: String, cities: Vec<CityDto>) -> Result<City, OpenWeatherError> {
+    cities
+        .into_iter()
+        .next()
+        .map(City::from)
+        .ok_or(OpenWeatherError::LocationNotFound(location))
 }

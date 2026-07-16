@@ -12,22 +12,6 @@ use tokio::task::JoinSet;
 use super::config::*;
 use super::errors::*;
 
-#[allow(async_fn_in_trait)]
-pub trait WeatherProvider {
-    async fn geocode_belgian_city(&self, name: &str) -> Result<City, AppError>;
-    async fn forecast(&self, city: &City) -> Result<CityWeather, AppError>;
-}
-
-impl WeatherProvider for WeatherClient {
-    async fn geocode_belgian_city(&self, name: &str) -> Result<City, AppError> {
-        self.get_geocoding(name).await
-    }
-
-    async fn forecast(&self, city: &City) -> Result<CityWeather, AppError> {
-        self.get_forecast(city).await
-    }
-}
-
 pub async fn fav_city(
     config: Config,
     database: &mut Database,
@@ -77,7 +61,7 @@ pub async fn fetch_belgian_city_forecasts(
 
     let mut forecasts = Vec::with_capacity(city_count);
     while let Some(result) = requests.join_next().await {
-        let forecast = result.map_err(|_| AppError::OpenWeather)??;
+        let forecast = result??;
         forecasts.push(forecast);
     }
 
@@ -114,9 +98,9 @@ pub async fn city(
     Ok(())
 }
 
-async fn weather_for_unknown_city<P: WeatherProvider>(
+async fn weather_for_unknown_city(
     database: &mut Database,
-    provider: &P,
+    weather_api: &WeatherClient,
     requested_name: String,
     day: Option<ForecastDay>,
     now: DateTime<Utc>,
@@ -131,7 +115,7 @@ async fn weather_for_unknown_city<P: WeatherProvider>(
     {
         Some(city) => city,
         None => {
-            let geocoded = provider.geocode_belgian_city(&requested_name).await?;
+            let geocoded = weather_api.get_geocoding(&requested_name).await?;
             match database
                 .fetch_cities(&CityFilter {
                     name: Some(geocoded.name().to_owned()),
@@ -151,12 +135,12 @@ async fn weather_for_unknown_city<P: WeatherProvider>(
         }
     };
 
-    weather_for_city_and_day(database, provider, stored_city, day, now).await
+    weather_for_city_and_day(database, weather_api, stored_city, day, now).await
 }
 
-async fn weather_for_city_and_day<P: WeatherProvider>(
+async fn weather_for_city_and_day(
     database: &mut Database,
-    provider: &P,
+    weather_api: &WeatherClient,
     stored_city: CityModel,
     day: Option<ForecastDay>,
     now: DateTime<Utc>,
@@ -182,7 +166,7 @@ async fn weather_for_city_and_day<P: WeatherProvider>(
         }
     }
 
-    let weather = provider.forecast(&City::from(&stored_city)).await?;
+    let weather = weather_api.get_forecast(&City::from(&stored_city)).await?;
     if weather.forecasts().is_empty() {
         return Err(AppError::EmptyForecastResponse);
     }

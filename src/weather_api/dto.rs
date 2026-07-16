@@ -1,5 +1,5 @@
 use crate::entity::{City, Coordinate, Forecast};
-use crate::errors::AppError;
+use crate::weather_api::OpenWeatherError;
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
@@ -28,11 +28,11 @@ pub struct MainDto {
 }
 
 impl TryFrom<ForecastPointDto> for Forecast {
-    type Error = AppError;
+    type Error = OpenWeatherError;
 
     fn try_from(value: ForecastPointDto) -> Result<Self, Self::Error> {
-        let forecast_at =
-            DateTime::<Utc>::from_timestamp(value.dt, 0).ok_or(AppError::OpenWeather)?;
+        let forecast_at = DateTime::<Utc>::from_timestamp(value.dt, 0)
+            .ok_or(OpenWeatherError::InvalidForecastTimestamp(value.dt))?;
 
         Ok(Forecast::new(
             forecast_at,

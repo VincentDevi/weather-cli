@@ -1,11 +1,12 @@
 use thiserror::Error;
 
 use crate::database::DatabaseError;
+use crate::weather_api::OpenWeatherError;
 
 #[derive(Error, Debug)]
 pub enum AppError {
-    #[error("Weather API error")]
-    OpenWeather,
+    #[error(transparent)]
+    OpenWeather(#[from] OpenWeatherError),
     #[error("wrong argument")]
     Argument,
     #[error("favorite city `{0}` was not found")]
@@ -22,4 +23,6 @@ pub enum AppError {
     Server(String),
     #[error(transparent)]
     Database(#[from] DatabaseError),
+    #[error(transparent)]
+    TaskJoin(#[from] tokio::task::JoinError),
 }
