@@ -1,0 +1,8 @@
+pub mod app;
+pub mod cli;
+pub mod config;
+pub mod database;
+pub mod entity;
+pub mod errors;
+pub mod output;
+pub mod weather_api;

@@ -23,7 +23,7 @@ impl WeatherClient {
         }
     }
 
-    pub async fn get_forecast(&self, city: City) -> Result<CityWeather, AppError> {
+    pub async fn get_forecast(&self, city: &City) -> Result<CityWeather, AppError> {
         let forecast_url = "https://api.openweathermap.org/data/2.5/forecast";
         let response = self
             .client
@@ -53,7 +53,14 @@ impl WeatherClient {
             .map(Forecast::try_from)
             .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(CityWeather::new(city, forecast, timezone_offset_seconds))
+        Ok(CityWeather::new(
+            City::new(
+                city.name(),
+                crate::entity::Coordinate::new(city.coordinates().lat(), city.coordinates().long()),
+            ),
+            forecast,
+            timezone_offset_seconds,
+        ))
     }
 
     pub async fn get_geocoding(&self, location: impl Into<String>) -> Result<City, AppError> {

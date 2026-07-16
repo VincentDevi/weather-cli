@@ -20,3 +20,8 @@
 # Operating system files
 .DS_Store
 Thumbs.db
+
+# SQLite runtime files
+data/weather.db
+data/weather.db-wal
+data/weather.db-shm

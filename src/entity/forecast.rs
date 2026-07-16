@@ -28,6 +28,10 @@ impl Forecast {
         self.temperature_celsius
     }
 
+    pub fn forecast_at(&self) -> DateTime<Utc> {
+        self.forecast_at
+    }
+
     pub fn humidity_percent(&self) -> i64 {
         self.humidity_percent
     }
@@ -55,6 +59,14 @@ impl CityWeather {
 
     pub fn city(&self) -> &City {
         &self.city
+    }
+
+    pub fn forecasts(&self) -> &[Forecast] {
+        &self.forecast
+    }
+
+    pub fn timezone_offset_seconds(&self) -> i32 {
+        self.timezone_offset_seconds
     }
 
     pub fn next_forecast(&self) -> Option<&Forecast> {

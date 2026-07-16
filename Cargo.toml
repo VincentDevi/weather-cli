@@ -30,3 +30,4 @@ dotenvy = "0.15.7"
 
 # Date and Time
 chrono = "0.4.45"
+rusqlite = { version = "0.40.1", features = ["bundled"] }

@@ -1,16 +1,12 @@
 use clap::Parser;
-use cli::*;
-use config::Config;
-use errors::AppError;
 use std::process::ExitCode;
-
-mod app;
-mod cli;
-mod config;
-mod entity;
-mod errors;
-mod output;
-mod weather_api;
+use weather_cli::{
+    app,
+    cli::{Cli, Command},
+    config::Config,
+    database::Database,
+    errors::AppError,
+};
 
 #[tokio::main]
 async fn main() -> ExitCode {
@@ -28,9 +24,17 @@ async fn run() -> Result<(), AppError> {
     let config = Config::load()?;
 
     match command {
-        Command::FavCity { city } => app::fav_city(config, city, day).await?,
+        Command::FavCity { city } => {
+            let mut database = Database::open(config.database_path())?;
+            database.initialize()?;
+            app::fav_city(config, &mut database, city, day).await?;
+        }
         Command::FavCities => app::fetch_belgian_city_forecasts(config, day).await?,
-        Command::UnknowBelgianCity { city } => app::city(config, city, day).await?,
+        Command::UnknownBelgianCity { city } => {
+            let mut database = Database::open(config.database_path())?;
+            database.initialize()?;
+            app::city(config, &mut database, city, day).await?;
+        }
     }
 
     Ok(())

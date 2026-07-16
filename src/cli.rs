@@ -33,5 +33,5 @@ pub struct Cli {
 pub enum Command {
     FavCity { city: String },
     FavCities,
-    UnknowBelgianCity { city: String },
+    UnknownBelgianCity { city: String },
 }
