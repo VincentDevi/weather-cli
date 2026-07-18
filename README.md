@@ -1,5 +1,9 @@
 # Weather CLI
 
+## AI clothing suggestions
+
+The `task-3.1/add-ai` branch introduces a new feature that not only returns the weather forecast, but also suggests what the user should wear based on the expected conditions.
+
 ## How to run it locally
 
 ### Prerequisites
