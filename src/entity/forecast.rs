@@ -1,5 +1,5 @@
 use super::City;
-use chrono::{DateTime, Days, FixedOffset, NaiveDate, NaiveTime, Utc};
+use chrono::{DateTime, Days, FixedOffset, NaiveDate, NaiveTime, SecondsFormat, Utc};
 
 #[derive(Debug)]
 pub struct Forecast {
@@ -38,6 +38,18 @@ impl Forecast {
 
     pub fn precipitation_probability(&self) -> f64 {
         self.precipitation_probability
+    }
+
+    pub fn to_prompt(&self) -> String {
+        let forecast_at = self
+            .forecast_at
+            .to_rfc3339_opts(SecondsFormat::AutoSi, true);
+        let precipitation_percent = (self.precipitation_probability * 100.0).round();
+
+        format!(
+            "Forecast at {forecast_at}: temperature {:.1} °C, humidity {}%, precipitation probability {precipitation_percent:.0}%.",
+            self.temperature_celsius, self.humidity_percent
+        )
     }
 }
 

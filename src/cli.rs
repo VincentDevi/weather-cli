@@ -34,4 +34,5 @@ pub enum Command {
     FavCity { city: String },
     FavCities,
     UnknownBelgianCity { city: String },
+    WhatToWearIn { city: String },
 }

@@ -1,11 +1,13 @@
+use crate::agent::Agent;
 use crate::cli::ForecastDay;
 use crate::database::{
     CityFilter, CityModel, CreateCityModel, CreateForecastModel, Database, ForecastFilter,
 };
 use crate::entity::{City, CityWeather};
-use crate::output::{WeatherTableRow, render_weather_table};
+use crate::output::{WeatherTableRow, render_markdown, render_weather_table};
 use crate::weather_api::WeatherClient;
 use chrono::{DateTime, Utc};
+use std::io::{self, IsTerminal};
 use std::sync::Arc;
 use tokio::task::JoinSet;
 
@@ -212,4 +214,44 @@ fn weather_table_row(
         Some(forecast.humidity_percent()),
         Some(forecast.precipitation_probability()),
     ))
+}
+
+pub async fn suggestion(
+    config: Config,
+    database: &mut Database,
+    city: impl Into<String>,
+    day: Option<ForecastDay>,
+) -> Result<(), AppError> {
+    let ai_client = Agent::new(&config.openai_key())?;
+    let weather_api = WeatherClient::new(&config.open_weather_key());
+    let now = Utc::now();
+
+    let city_forecast = weather_for_unknown_city(
+        database,
+        &weather_api,
+        city.into().trim().to_owned(),
+        day,
+        now,
+    )
+    .await?;
+
+    let forecasts_prompt = city_forecast
+        .forecasts()
+        .iter()
+        .map(|forecast| forecast.to_prompt())
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let result = ai_client.suggestion(forecasts_prompt).await?;
+
+    let rendered = render_markdown(&result, io::stdout().is_terminal());
+    let row = weather_table_row(&city_forecast, day, now)?;
+
+    println!("{}", render_weather_table(&[row]));
+
+    if !rendered.is_empty() {
+        println!("{rendered}");
+    }
+
+    Ok(())
 }

@@ -6,11 +6,13 @@
 
 - [Rust](https://www.rust-lang.org/tools/install)
 - An [OpenWeather API key](https://openweathermap.org/api)
+- An [OpenAI API key](https://platform.openai.com/api-keys)
 
-Create a `.env` file in the project root and add your OpenWeather API key:
+Create a `.env` file in the project root and add your OpenWeather and OpenAI API keys:
 
 ```dotenv
 OPEN_WEATHER_KEY=your_api_key
+OPENAI_API_KEY=your_api_key
 ```
 
 By default, the application stores its SQLite database at `./data/weather.db`. To use a different location, set the optional `WEATHER_DB_PATH` variable:
@@ -51,6 +53,14 @@ Display the weather forecast for a Belgian city that is not already stored. The 
 cargo run -- unknown-belgian-city Dinant
 ```
 
+#### `what-to-wear-in <CITY>`
+
+Display the weather forecast for a Belgian city and generate a suggestion about what to wear based on the weather conditions.
+
+```sh
+cargo run -- what-to-wear-in Brussels
+```
+
 ### Forecast day
 
 By default, each command displays the next available forecast. Use the global `--day` option to select a later day:
@@ -58,6 +68,7 @@ By default, each command displays the next available forecast. Use the global `-
 ```sh
 cargo run -- fav-city Brussels --day tomorrow
 cargo run -- fav-cities --day day-after-tomorrow
+cargo run -- what-to-wear-in Brussels --day tomorrow
 ```
 
 Available values are:
@@ -71,6 +82,14 @@ Use `--help` to see all commands and options, or `--version` to display the appl
 cargo run -- --help
 cargo run -- --version
 ```
+
+## Task 3.1.1 — Extra feature
+
+The `what-to-wear-in` command was added as an extra feature that was not part of the original requirements. It combines the existing weather forecast with an AI-generated clothing suggestion so the user receives practical advice alongside the weather data.
+
+For this first version, we deliberately kept the AI integration simple. We use the [Rig](https://rig.rs/) Rust library to send the forecast to OpenAI's `gpt-5-nano` completion model. The model receives weather data that the application has already fetched and returns a clothing recommendation.
+
+This is a direct completion workflow, not a tool-using agent. The model cannot call the weather API, query the database, or choose tools on its own. Building an agent would add orchestration that this initial use case does not need: the application already has the required forecast, and the model only needs to turn it into a useful suggestion.
 
 ## Goal
 
@@ -95,6 +114,10 @@ This is the abstraction layer for calls to the external OpenWeather API.
 
 - Data transfer objects (DTOs) represent API response models.
 - Client functions send requests to the API and convert its responses into application entities.
+
+### AI suggestion
+
+This module uses Rig to send weather data to an OpenAI completion model and return a clothing recommendation. The application remains responsible for fetching the forecast and passes the resulting conditions directly to the model; the model does not use tools.
 
 ### Output
 

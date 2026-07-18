@@ -1,5 +1,9 @@
 use chrono::NaiveDate;
 use comfy_table::{ContentArrangement, Table, presets::UTF8_FULL};
+use termimad::{
+    MadSkin,
+    crossterm::style::{Attribute, Color},
+};
 
 #[derive(Debug, PartialEq)]
 pub struct WeatherTableRow {
@@ -49,6 +53,34 @@ pub fn render_weather_table(rows: &[WeatherTableRow]) -> String {
     }
 
     table.to_string()
+}
+
+pub fn render_markdown(markdown: &str, styled: bool) -> String {
+    let normalized = markdown.replace("\r\n", "\n");
+    let normalized = normalized.trim();
+
+    if normalized.is_empty() {
+        return String::new();
+    }
+
+    if styled {
+        markdown_skin().term_text(normalized).to_string()
+    } else {
+        normalized.to_owned()
+    }
+}
+
+fn markdown_skin() -> MadSkin {
+    let mut skin = MadSkin::default();
+
+    for header in &mut skin.headers {
+        header.set_fg(Color::Cyan);
+        header.add_attr(Attribute::Bold);
+    }
+    skin.bullet.set_fg(Color::Yellow);
+    skin.inline_code.set_fg(Color::DarkGrey);
+
+    skin
 }
 
 fn format_date(value: Option<NaiveDate>) -> String {

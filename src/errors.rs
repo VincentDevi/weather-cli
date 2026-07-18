@@ -1,5 +1,6 @@
 use thiserror::Error;
 
+use crate::agent::AgentError;
 use crate::database::DatabaseError;
 use crate::weather_api::OpenWeatherError;
 
@@ -25,4 +26,6 @@ pub enum AppError {
     Database(#[from] DatabaseError),
     #[error(transparent)]
     TaskJoin(#[from] tokio::task::JoinError),
+    #[error(transparent)]
+    AiAgent(#[from] AgentError),
 }
